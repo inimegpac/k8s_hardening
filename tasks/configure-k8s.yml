@@ -1,0 +1,88 @@
+---
+# Kubelet will not start if the system has swap enabled
+- name: Remove swapfile from /etc/fstab
+  mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  with_items:
+    - swap
+    - none
+
+- name: Disable swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+# Install kubelet, kubeadm and kubectl
+- name: (Debian) Add an apt signing key for Kubernetes
+  apt_key:
+    url: "{{ k8s_apt_gpg_key }}"
+    state: "{{ k8s_package_state }}"
+
+- name: (Debian) Add apt repository for Kubernetes
+  apt_repository:
+    repo: "{{ k8s_apt_repository }}"
+    state: "{{ k8s_package_state }}"
+    filename: kubernetes.list
+
+- name: (Debian) Install Kubernetes binaries
+  apt: 
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - kubelet 
+      - kubeadm 
+      - kubectl
+
+- name: Configure node ip
+  lineinfile:
+    path: /etc/default/kubelet
+    line: "KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}"
+    create: yes
+
+- name: Restart kubelet
+  service:
+    name: kubelet
+    daemon_reload: yes
+    state: restarted
+
+# Master configuration
+- name: Set master configuration
+  block:
+    - name: Initialize the Kubernetes cluster using kubeadm
+      command: "kubeadm init --apiserver-advertise-address={{ apiserver_advertise_address }} --apiserver-cert-extra-sans={{ apiserver_cert_extra_sans }}  --node-name {{ inventory_hostname }} --pod-network-cidr={{ pod_network_cidr }}"
+
+    - name: Setup kubeconfig for user
+      command: "{{ item }}"
+      with_items:
+        - "mkdir -p /home/{{ user }}/.kube"
+        - "cp -i /etc/kubernetes/admin.conf /home/{{ user }}/.kube/config"
+        - "chown {{ user }}:{{ group }} /home/{{ user }}/.kube/config"
+
+    - name: Install calico pod network
+      command: "kubectl create -f {{ pod_network_plugin }}"
+      become: false
+
+    - name: Generate join command
+      command: kubeadm token create --print-join-command
+      register: join_command
+
+    - name: Copy join command to local file
+      local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join_command"
+      become: false
+  when: inventory_hostname == "{{ k8s_master_name }}" #when: inventory_hostname in groups['k8s-master']
+
+# Nodes configuration
+- name: Set nodes configuration
+  block:
+    - name: Copy the join command to node
+      copy: 
+        src: join_command
+        dest: /tmp/join_command.sh
+        mode: "0777"
+
+    - name: Join the node to cluster
+      command: sh /tmp/join_command.sh
+  when: inventory_hostname != "{{ k8s_master_name }}" #when: inventory_hostname in groups['nodes']

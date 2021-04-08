@@ -1,12 +1,13 @@
 ---
+# Docker
 - include_tasks: configure-docker.yml
   when: docker_configuration | bool
 
-- include_tasks: ../tasks/benchmark-docker.yml
-  when: docker_benchmark | bool
-
 - include_tasks: configure-docker-compose.yml
   when: docker_install_compose | bool
+
+- include_tasks: ../tasks/benchmark-docker.yml
+  when: docker_benchmark | bool
 
 - name: (Debian) Install and restart Docker
   package:
@@ -28,3 +29,7 @@
     append: true
   with_items: "{{ docker_users }}"
   when: docker_users | length > 0
+
+# Kubernetes cluster
+- include_tasks: ../tasks/configure-k8s.yml
+  when: k8s_benchmark | bool

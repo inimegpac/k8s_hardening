@@ -1,8 +1,14 @@
-# Ansible Hardening Docker - CIS Docker Benchmark
+# Ansible Hardening Docker Kubernetes - CIS Benchmark
 
-Most good practices from CIS for hardening your Docker environment with Ansible.
+Most good practices from CIS for hardening your Kubernetes environment with Ansible.
 
-**Differences from official repository (Github nor `master` branch)**
+Based on:
+
+- [docker-bench-security](https://github.com/docker/docker-bench-security)
+
+- [kube-bench](https://github.com/aquasecurity/kube-bench)
+
+**New features for docker-bench-security**
 
 - Ansible configuration.
 
@@ -41,6 +47,8 @@ $ sudo bash benchmark/docker-bench-security.sh -v 20.10.5
 
 [Vagrantfile](Vagrantfile) provided for testing Ansible playbooks.
 
+- Install vagrant.
+
 ### Ansible
 
 You can deploy the configuration for hardening your machines
@@ -59,7 +67,7 @@ Run `$ ansible all -m ping` for testing your configuration.
 
 If you want to test manually
 
-- Copy [benchmark](benchmark) path to remote machines.
+- Copy [benchmark_docker](benchmark_docker) path to remote machines.
 
 - Copy the [config/daemon.json](config/daemon.json) to the Docker Daemon config path (by default `/etc/docker/daemon.json`) on remote machines. You can add more options from [config/daemon-template.json](config/daemon-template.json). **NOTE**: care about `"userns-remap"` option (see Troubleshooting part for further information).
 
@@ -70,6 +78,12 @@ If you want to test manually
 ### Test
 
 - Install vagrant and run `$ vagrant up`
+
+~~~
+$ vagrant status
+$ vagrant ssh k8s-master
+$ kubectl get nodes
+~~~
 
 ### Ansible
 
@@ -83,7 +97,7 @@ Check benchmark logs on [benchmark/results](benchmark/results)
 
 ### Manual benchmark
 
-**Please go to the main `README.md` from Github or `master` branch in this repository for further information**
+**Please go to [docker-bench-security](https://github.com/docker/docker-bench-security) for further information**
 
 The CIS based checks are named `check_<section>_<number>`, e.g. `check_2_6` and community contributed checks are named `check_c_<number>`.
 
@@ -118,19 +132,17 @@ $ systemctl stop docker.socket
 ERROR: for python  Cannot start service python: OCI runtime create failed: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: write sysctl key kernel.domainname: open /proc/sys/kernel/domainname: permission denied: unknown
 ~~~
 
-**BUG**: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
+***BUG***: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
 
-**EXPLANATION**: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
+***EXPLANATION***: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
 
-**Remmediation**: delete `"userns-remap": "default"` from `config/daemon.json`
+***REMMEDIATION***: delete `"userns-remap": "default"` from `config/daemon.json`
 
-**RELATED TO**: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
+***RELATED TO***: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
 
 ## TODO
 
 - Add script for creating TLS certs automatically.
-
-- Remove benchmark files on remote mchines.
 
 ## References
 
