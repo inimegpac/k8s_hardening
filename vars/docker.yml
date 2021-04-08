@@ -1,0 +1,44 @@
+---
+# Install docker? Control the installation with this variable on the playbook
+docker_configuration: true
+docker_benchmark: true
+
+# Benchmark log name
+docker_benchmark_log: "docker-bench.log"
+
+# A list of users who will be added to the docker group
+docker_users: ['vagrant']
+
+# Edition can be one of: 'ce' (Community Edition) or 'ee' (Enterprise Edition)
+docker_edition: 'ce'
+docker_package_debian: "docker-{{ docker_edition }}"
+docker_package_arch: docker
+docker_package_state: present
+
+# Service options
+docker_service_state: restarted
+docker_service_enabled: true
+docker_restart_handler_state: restarted
+
+# Docker Compose options
+docker_install_compose: false
+# Already installed by package manager
+docker_compose_version: "1.28.5"
+docker_compose_system: "Linux"
+docker_compose_architecture: "x86_64"
+docker_compose_url: https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ docker_compose_system }}-{{ docker_compose_architecture }}
+docker_compose_path: /usr/local/bin/docker-compose
+
+# Used only for Debian/Ubuntu
+docker_repo_url: https://download.docker.com/linux
+docker_apt_release_channel: stable
+docker_apt_arch: amd64
+docker_apt_repository: "deb [arch={{ docker_apt_arch }}] {{ docker_repo_url }}/{{ ansible_distribution | lower }} {{ ansible_lsb.codename }} {{ docker_apt_release_channel }}"
+docker_apt_ignore_key_error: false
+docker_apt_gpg_key: "{{ docker_repo_url }}/{{ ansible_distribution | lower }}/gpg"
+
+# Used only for RedHat/CentOS/Fedora
+# docker_yum_repo_url: "{{ docker_repo_url }}/{{ (ansible_distribution == 'Fedora') | ternary('fedora','centos') }}/docker-{{ docker_edition }}.repo"
+# docker_yum_repo_enable_nightly: '0'
+# docker_yum_repo_enable_test: '0'
+# docker_yum_gpg_key: "{{ docker_repo_url }}/centos/gpg"

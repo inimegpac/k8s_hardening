@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+  python: 
+    container_name: python3
+    image: python:3.9-slim
+    entrypoint: tail -f /dev/null
+    security_opt:
+      - 'seccomp:no-chmod.json'      # 5.21 NEVER disable seccomp
+      - 'apparmor:docker-default'    # 5.1
+      - no-new-privileges:true       # 5.25 SET to true
+    privileged: false                # 5.3, 5.4 NEVER true
+    # cap_add:                       # 5.3
+    #   - ALL
+    # cap_drop:                      # 5.3
+    #   - NET_ADMIN
+    #   - SYS_ADMIN  
+    read_only: true                  # 5.12
+    cpu_count: 2                     # 5.11 extra
+    cpu_percent: 50                  # 5.11 extra
+    cpus: 0.5                        # 5.11 extra
+    cpu_shares: 512        # 5.11 every container will have 1024 shares of CPU by default. 512 is 50%
+    # cpu_quota: 50000               # 5.11 extra
+    # cpu_period: 20ms               # 5.11 extra
+    cpuset: 0,1                      # 5.11 extra
+    domainname: foo.com
+    hostname: foo
+    mem_limit: 1000000000                   # 5.10 1000000000=1GB
+    memswap_limit: 2000000000               # 5.10 extra
+    restart: on-failure:5                   # 5.14 ALWAYS <5 
+    # pid: "host"                           # 5.15 NEVER
+    # ipc: host                             # 5.16 NEVER
+    # devices:                              # 5.17 NEVER
+    #   - "/dev/ttyUSB0:/dev/ttyUSB0"
+    ulimits:                                # 5.18 SET if needed  
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    ports:
+      - "127.0.0.1:9999:9999"   # 5.13 SET the host
+    #  - "0.0.0.0:9999:9999"    # 5.13 NEVER
+    volumes:
+    #  - "/boot:/boot"                               # 5.5 NEVER mount critical directories
+    #  - "./volume_shared:/volume_shared:shared"     # 5.19 NEVER use shared
+    #  - "/var/run/docker.sock:/var/run/docker.sock" # 5.31 NEVER
+      - "cis:/volume"
+    #cgroup_parent: m-executor-abcd         # 5.24 NEVER
+    networks:
+      - cis
+    # network_mode: bridge                  # 5.9, 5.29 NEVER use bridge nor host
+    healthcheck:                            # 5.26
+      test: stat /etc/passwd || exit 1
+      interval: 1m30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    # userns_mode: "host"                    # 5.30 NEVER use host
+
+volumes:
+  cis:
+
+networks:
+  cis:
+    ipam:
+      driver: default

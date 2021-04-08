@@ -1,0 +1,16 @@
+---
+- hosts: all
+  remote_user: "{{ user  }}"
+  become: yes
+  vars_files:
+    - "../vars/docker.yml"
+    - "../vars/host-config.yml"
+  tasks:
+    - name: Configure all machines
+      include: ../tasks/configure-all.yml
+
+    - name: Provision and benchmark Docker
+      include: ../tasks/main-docker.yml
+
+    - name: Clear packages on all machines
+      include: ../tasks/autoremove.yml

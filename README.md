@@ -1,117 +1,167 @@
-## Tips
+# Ansible Hardening Docker - CIS Docker Benchmark
 
-Minikube cluster benchamrk usindg docker driver.
+Most good practices from CIS for hardening your Docker environment with Ansible.
 
-SYSTEMD file: /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+**Differences from official repository (Github nor `master` branch)**
 
-~~~
-[Unit]
-Wants=docker.socket
+- Ansible configuration.
 
-[Service]
-ExecStart=
-ExecStart=/var/lib/minikube/binaries/v1.20.2/kubelet --bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --config=/var/lib/kubelet/config.yaml --container-runtime=docker --hostname-override=ubuntu20 --kubeconfig=/etc/kubernetes/kubelet.conf --node-ip=192.168.1.44 --resolv-conf=/run/systemd/resolve/resolv.conf
-
-[Install]
-~~~
-
-Path of interest
+- New argument `-v` for [benchmark/docker-bench-security.sh](benchmark/docker-bench-security.sh). You can pass the Docker official version and check if corresponds with yours.
 
 ~~~
-~/.kube
-~/.minikube
-/etc/kubernetes
-/var/lib/kubelet
-/var/lib/minikube
+$ sudo bash benchmark/docker-bench-security.sh -v 20.10.5
 ~~~
 
-We can find some configuration files on:
+- New colours styles:
+    - [WARN] in red for critical issues that you have to fix.
+    - [INFO] in yellow for external (manually) actions (checks) you have to do in order to follow CIS recommendation. In general this check does not have a critical impact in your Docker environment nor may depend on external factors.
+    - [NOTE] in blue for just a recommendations/suggestion or information to fix the point.
+
+- [config/daemon.json](config/daemon.json) file configuration provided.
 
 ~~~
-~/.kube/config
-/var/lib/kubelet/config.yaml
-/etc/kubernetes/kubelet.conf
+{
+    "cgroup-parent": "",          # CIS 2.9 SET your /foobar/path
+    "log-level": "info",          # CIS 2.2
+    "icc": false,                 # CIS 2.1
+    "live-restore": true,         # CIS 2.13
+    "userland-proxy": false,      # CIS 2.14
+    "no-new-privileges": true,    # CIS 2.17
+    "selinux-enabled": true,      # CIS 5.2
+    "userns-remap": "default",    # CIS 2.8 BUG see troubleshooting
+    "storage-driver": ""          # CIS 2.5 NOT "aufs"
+}
 ~~~
 
----
+- [docker/docker-compose.yml](docker/docker-compose.yml) file provided with examples and security options.
 
-Results and remmediations for WARN and FAIL tests:
+## Configuration
 
-**1.1.9** WARN - files up to 644
+### Test
 
-No found path to Container Network interfaces.
+[Vagrantfile](Vagrantfile) provided for testing Ansible playbooks.
 
-**1.1.10** WARN - files to root:root
+### Ansible
 
-No found path to Container Network interfaces.
+You can deploy the configuration for hardening your machines
 
-**1.1.12** FAIL - fixed
+- Install ansible on local machine (where you are going to deploy from).
 
-REMMEDIATION: chown etcd:etcd /path/to/etcd
+- Generate ssh keys and copy on remote machines. See [keys/README.md](keys/README.md) and [create_user_ansible.sh](create_user_ansible.sh) for further information.
 
-~~~
-ls -l /var/lib/minikube/
-total 20
-drwxr-xr-x 3 root         root         4096 feb 24 19:05 binaries
-drwxr-xr-x 3 root         root         4096 mar 31 11:03 certs
-drwx------ 3 root         root         4096 mar 31 11:03 etcd
-drwxr-xr-x 2 root         root         4096 mar 31 08:58 images
--rw-r--r-- 1 felrodriguez felrodriguez  746 mar 31 11:03 kubeconfig
-~~~
+- Configure your hosts in [inventory/hosts](inventory/hosts).
 
-**1.1.19** FAIL - Kubernetes PKI directory root:root
+- Set required variables on [vars/](vars/) files. If your machines already has installed Docker then set `docker_configuration` to false.
 
-I only found pki directory on /var/lib/kubelet/pki/ with owner root:root... why FAIL? seems that it checks on /etc/kubernetes/pki
+Run `$ ansible all -m ping` for testing your configuration.
 
-~~~
-ls -l /var/lib/kubelet/
-total 36
--rw-r--r-- 1 root root 1062 mar 31 11:03 config.yaml
--rw------- 1 root root   62 mar 31 09:00 cpu_manager_state
-drwxr-xr-x 2 root root 4096 mar 31 11:03 device-plugins
--rw-r--r-- 1 root root  116 mar 31 11:03 kubeadm-flags.env
-drwxr-xr-x 2 root root 4096 mar 31 09:00 pki               --- this
-drwxr-x--- 2 root root 4096 mar 31 09:00 plugins
-drwxr-x--- 2 root root 4096 mar 31 09:00 plugins_registry
-drwxr-x--- 2 root root 4096 mar 31 11:03 pod-resources
-drwxr-x--- 9 root root 4096 mar 31 09:01 pods
-~~~
+### Manual benchmark
 
-**1.1.20** WARN - Kubernetes PKI certificate 644
+If you want to test manually
 
-Same as 1.1.19
+- Copy [benchmark](benchmark) path to remote machines.
+
+- Copy the [config/daemon.json](config/daemon.json) to the Docker Daemon config path (by default `/etc/docker/daemon.json`) on remote machines. You can add more options from [config/daemon-template.json](config/daemon-template.json). **NOTE**: care about `"userns-remap"` option (see Troubleshooting part for further information).
+
+- If you want to test the [docker/docker-compose.yml](docker/docker-compose.yml) you have to copy it to another path. See [docker/README.md](docker/README.md)
+
+## Usage
+
+### Test
+
+- Install vagrant and run `$ vagrant up`
+
+### Ansible
+
+Just run the following script [run_playbook.sh](run_playbook.sh) for configuring and hardening Docker in your hosts
 
 ~~~
-ls -l /var/lib/kubelet/pki/
-total 12
--rw------- 1 root root 2806 mar 31 09:00 kubelet-client-2021-03-31-09-00-16.pem
-lrwxrwxrwx 1 root root   59 mar 31 09:00 kubelet-client-current.pem -> /var/lib/kubelet/pki/kubelet-client-2021-03-31-09-00-16.pem
--rw-r--r-- 1 root root 2250 mar 31 09:00 kubelet.crt
--rw------- 1 root root 1679 mar 31 09:00 kubelet.key
+$ bash run_playbook.sh playbooks/docker.yaml
 ~~~
 
-**1.1.21** WARN - Kubernetes PKI key file 600
+Check benchmark logs on [benchmark/results](benchmark/results)
 
-Same as 1.1.19 and 1.1.20
+### Manual benchmark
 
-**1.2.1** WARN - anonymous-auth set to false
+**Please go to the main `README.md` from Github or `master` branch in this repository for further information**
 
+The CIS based checks are named `check_<section>_<number>`, e.g. `check_2_6` and community contributed checks are named `check_c_<number>`.
 
-**4.1.7 // 4.1.8**
+A complete list of checks is present in [functions_lib.sh](functions_lib.sh).
 
-You can see your certs path location in `~/.kube/config`. In this case I am using minikube so my certs path is `~/.minikube/profiles/minikube/`
+`$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -v 20.10.5` will run all checks and compare the Docker official version with your Docker enviroment.
 
-REMMEDIATION: 
+`$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -c check_2_2` will only run check `2.2 Ensure the logging level is set to 'info'`.
 
-- 4.1.7: NOT because my files are more restrictive than 644.
-- 4.1.8: NOT because I installed k8s with a custom user.
+`$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -e check_2_2` will run all available checks except `2.2 Ensure the logging level is set to 'info'`.
+
+`$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -e docker_enterprise_configuration` will run all available checks except the docker_enterprise_configuration group
+
+`$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -e docker_enterprise_configuration,check_2_2` will run all available checks except the docker_enterprise_configuration group and `2.2 Ensure the logging level is set to 'info'`
+
+`$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -c container_images -e check_4_5` will run just the container_images checks except `4.5 Ensure Content trust for Docker is Enabled`
 
 ## Troubleshooting
 
-- "Kubernetes v1.18.2 requires conntrack to be installed in root's path"
+- You should make persistant every new rule you add with `auditctl` (see CIS 1). Check it after restart your environment. Ansible makes these default rules persistent but there may be an error if the paths/files do not exist.
 
-REMMEDIATION: sudo apt-get install -y conntrack
+- NOT to restart the Docker Daemon!! First stop it, make your config changes and finally start it.
 
-- "docker: Error: remote trust data does not exist for docker.io/aquasec/kube-bench: notary.docker.io does not have trust data for docker.io/aquasec/kube-bench"
+~~~
+$ systemctl stop docker # Stopping docker.service, but it can still be activated by docker.socket
+$ systemctl stop docker.socket
+~~~
 
-REMMEDIATION: fix the problem setting DOCKER_CONTENT_TRUST=0 (1 for trusted images as CIS recommends)
+- Fail to start a container with ERROR
+
+~~~
+ERROR: for python  Cannot start service python: OCI runtime create failed: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: write sysctl key kernel.domainname: open /proc/sys/kernel/domainname: permission denied: unknown
+~~~
+
+**BUG**: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
+
+**EXPLANATION**: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
+
+**Remmediation**: delete `"userns-remap": "default"` from `config/daemon.json`
+
+**RELATED TO**: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
+
+## TODO
+
+- Add script for creating TLS certs automatically.
+
+- Remove benchmark files on remote mchines.
+
+## References
+
+Security features from CIS 5.
+
+1. **AppArmor**
+
+AppArmor (Application Armor) is a Linux Security Module (LSM). It protects the operating system by applying profiles to individual applications or containers. In contrast to managing capabilities with CAP_DROP and syscalls with seccomp, AppArmor allows for much finer-grained control. For example, AppArmor can restrict file operations on specified paths.
+
+[AppArmor security profiles for Docker](https://docs.docker.com/engine/security/apparmor/)
+
+[Protege contenedores con AppArmor](https://cloud.google.com/container-optimized-os/docs/how-to/secure-apparmor?hl=es)
+
+2. **SElinux**
+
+The Docker daemon relies on a [OCI](https://github.com/opencontainers/runtime-spec) compliant runtime (invoked via the containerd daemon) as its interface to the Linux kernel namespaces, cgroups, and __SELinux__
+
+[Secure your containers with SELinux](https://opensource.com/article/20/11/selinux-containers)
+
+3. **Seccomp**
+
+Seccomp is a sandboxing facility in the Linux kernel that acts like a firewall for system calls (syscalls). It uses Berkeley Packet Filter (BPF) rules to filter syscalls and control how they are handled. These filters can significantly limit a containers access to the Docker Host's Linux kernel - especially for simple containers/applications.
+
+The `docker/no-chmod.json` file is a profile with the chmod(), fchmod(), and chmodat() syscalls removed from its whitelist.
+
+### Extra
+
+[Docker Security (official github)](https://github.com/docker/labs/tree/master/security)
+
+[Docker Security Options](https://docs.docker.com/engine/security/)
+
+[Docker Compose Configuration](https://docs.docker.com/compose/compose-file/compose-file-v3/)
+
+[Containers Security toolkit](https://www.stackrox.com/post/2017/08/hardening-docker-containers-and-hosts-against-vulnerabilities-a-security-toolkit/)
