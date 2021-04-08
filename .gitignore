@@ -1,2 +1,4 @@
 .vagrant
 ansible_key*
+join_command
+notas.md
