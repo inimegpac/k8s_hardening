@@ -1,11 +1,15 @@
+# Control k8s installation cluster or just test on vagrant
+k8s_install: true
+
 # Benchmark k8s
 k8s_benchmark: true
-k8s_benchmark_log: "k8s-bench.log"
+k8s_benchmark_log: "bench.log"
 
 # Set master hostname. Same from inventory
 k8s_master_name: "k8s-master"
 
 # Extra master variables. Check in Vagrantfile
+# Flannel https://github.com/flannel-io/flannel#flannel
 pod_network_plugin: "https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 # Calico https://docs.projectcalico.org/getting-started/kubernetes/quickstart
 #pod_network_plugin: "https://docs.projectcalico.org/manifests/tigera-operator.yaml"

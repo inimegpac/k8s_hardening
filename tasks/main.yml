@@ -1,7 +1,7 @@
 ---
 # Docker
 - include_tasks: configure-docker.yml
-  when: docker_configuration | bool
+  when: docker_install | bool
 
 - include_tasks: configure-docker-compose.yml
   when: docker_install_compose | bool
@@ -32,4 +32,7 @@
 
 # Kubernetes cluster
 - include_tasks: ../tasks/configure-k8s.yml
+  when: k8s_install | bool
+
+- include_tasks: ../tasks/benchmark-k8s.yml
   when: k8s_benchmark | bool

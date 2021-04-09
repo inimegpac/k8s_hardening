@@ -1,12 +1,18 @@
 # Ansible Hardening Docker Kubernetes - CIS Benchmark
 
-Most good practices from CIS for hardening your Kubernetes environment with Ansible.
+Most good practices from CIS for hardening your Kubernetes cluster with Ansible.
 
 Based on:
 
 - [docker-bench-security](https://github.com/docker/docker-bench-security)
 
 - [kube-bench](https://github.com/aquasecurity/kube-bench)
+
+**TODO**
+
+- Add script for creating TLS certs automatically.
+
+- Configure calico pod network plugin instead of flannel.
 
 **New features for docker-bench-security**
 
@@ -49,6 +55,8 @@ $ sudo bash benchmark/docker-bench-security.sh -v 20.10.5
 
 - Install vagrant.
 
+Kubernetes cluster based on vagrant uses [flannel](https://github.com/flannel-io/flannel#flannel) as network plugin. See Troubleshooting to handle with possible errors.
+
 ### Ansible
 
 You can deploy the configuration for hardening your machines
@@ -77,12 +85,14 @@ If you want to test manually
 
 ### Test
 
-- Install vagrant and run `$ vagrant up`
+- Install vagrant and run `$ vagrant up`. Now you have a Kubernetes cluster running in virtualbox.
 
 ~~~
 $ vagrant status
 $ vagrant ssh k8s-master
 $ kubectl get nodes
+$ journalctl -u kubelet
+$ kubectl get po -n kube-system
 ~~~
 
 ### Ansible
@@ -90,14 +100,16 @@ $ kubectl get nodes
 Just run the following script [run_playbook.sh](run_playbook.sh) for configuring and hardening Docker in your hosts
 
 ~~~
-$ bash run_playbook.sh playbooks/docker.yaml
+$ bash run_playbook.sh playbooks/docker-k8s.yaml
 ~~~
 
-Check benchmark logs on [benchmark/results](benchmark/results)
+Check benchmark logs on [benchmark_docker/results](benchmark_docker/results) and [benchmark_k8s/results](benchmark_k8s/results)
 
 ### Manual benchmark
 
-**Please go to [docker-bench-security](https://github.com/docker/docker-bench-security) for further information**
+**Please go to [docker-bench-security](https://github.com/docker/docker-bench-security)  and [kube-bench](https://github.com/aquasecurity/kube-bench) for further information**
+
+**docker-bench-security**
 
 The CIS based checks are named `check_<section>_<number>`, e.g. `check_2_6` and community contributed checks are named `check_c_<number>`.
 
@@ -115,7 +127,25 @@ A complete list of checks is present in [functions_lib.sh](functions_lib.sh).
 
 `$ bash docker-bench-security.sh -l /tmp/docker-bench-security.sh.log -c container_images -e check_4_5` will run just the container_images checks except `4.5 Ensure Content trust for Docker is Enabled`
 
+**kube-bench**
+
+This proejct automate k8s benchmark using a go binary (kube-bench from [benchmark-k8s](benchmark-k8s)). You can run
+
+~~~
+$ ./kube-bench --help
+$ ./kube-bench --benchmark cis-1.6
+~~~
+
+For instance, with [benchmark-k8s/job.yml](benchmark-k8s/job.yml) you will deploy a pod that bench the cluster
+
+~~~
+$ kubectl apply -f job.yml
+$ kubectl logs $pod_name
+~~~
+
 ## Troubleshooting
+
+**Docker**
 
 - You should make persistant every new rule you add with `auditctl` (see CIS 1). Check it after restart your environment. Ansible makes these default rules persistent but there may be an error if the paths/files do not exist.
 
@@ -126,25 +156,73 @@ $ systemctl stop docker # Stopping docker.service, but it can still be activated
 $ systemctl stop docker.socket
 ~~~
 
-- Fail to start a container with ERROR
+- Fail to start a container with following ERROR
 
 ~~~
 ERROR: for python  Cannot start service python: OCI runtime create failed: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: write sysctl key kernel.domainname: open /proc/sys/kernel/domainname: permission denied: unknown
 ~~~
 
-***BUG***: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
+*bug*: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
 
-***EXPLANATION***: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
+*explanation*: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
 
-***REMMEDIATION***: delete `"userns-remap": "default"` from `config/daemon.json`
+*remmediation*: delete `"userns-remap": "default"` from `config/daemon.json`
 
-***RELATED TO***: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
+*related to*: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
 
-## TODO
+**Kubernetes**
 
-- Add script for creating TLS certs automatically.
+- Basic troubleshooting
+
+~~~
+$ kubectl get nodes -o wide
+$ kubectl get po -n kube-system
+~~~
+
+- Nodes are in status *Ready* but **flannel** pods are on *Error* or *CrashLoopBackOff*
+
+~~~
+Error registering network: failed to acquire lease: node "node1" pod cidr not assigned
+~~~
+
+*remmediation*: unless the cluster is initiallized with the `--pod-network-cidr` argument, sometimes it fails ([issue](https://github.com/kubernetes/kubeadm/issues/1899#issuecomment-552134904)). So you have to run
+
+~~~
+$ sudo cat /etc/kubernetes/manifests/kube-controller-manager.yaml | grep -i cluster-cidr
+    - --cluster-cidr=192.168.3.0/24
+~~~
+
+Which results is the subnet taken from [vars/k8s.yml](vars/k8s.yml) and [Vagrantfile](Vagrantfile). Then copy that cidr and paste in the following command
+
+~~~
+$ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch node $i -p '{"spec":{"podCIDR":"192.168.3.0/24"}}'; done
+~~~
 
 ## References
+
+**Docker**
+
+[Docker Security (official github)](https://github.com/docker/labs/tree/master/security)
+
+[Docker Security Options](https://docs.docker.com/engine/security/)
+
+[Docker Compose Configuration](https://docs.docker.com/compose/compose-file/compose-file-v3/)
+
+[Containers Security toolkit](https://www.stackrox.com/post/2017/08/hardening-docker-containers-and-hosts-against-vulnerabilities-a-security-toolkit/)
+
+**Kubernetes**
+
+[Kubeadm](https://kubernetes.io/docs/reference/setup-tools/kubeadm/)
+
+[Installing kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
+
+[Creating a cluster with kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+
+[Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-networking-model)
+
+[Flannel network plugin](https://github.com/flannel-io/flannel#flannel)
+
+**Extra**
 
 Security features from CIS 5.
 
@@ -167,13 +245,3 @@ The Docker daemon relies on a [OCI](https://github.com/opencontainers/runtime-sp
 Seccomp is a sandboxing facility in the Linux kernel that acts like a firewall for system calls (syscalls). It uses Berkeley Packet Filter (BPF) rules to filter syscalls and control how they are handled. These filters can significantly limit a containers access to the Docker Host's Linux kernel - especially for simple containers/applications.
 
 The `docker/no-chmod.json` file is a profile with the chmod(), fchmod(), and chmodat() syscalls removed from its whitelist.
-
-### Extra
-
-[Docker Security (official github)](https://github.com/docker/labs/tree/master/security)
-
-[Docker Security Options](https://docs.docker.com/engine/security/)
-
-[Docker Compose Configuration](https://docs.docker.com/compose/compose-file/compose-file-v3/)
-
-[Containers Security toolkit](https://www.stackrox.com/post/2017/08/hardening-docker-containers-and-hosts-against-vulnerabilities-a-security-toolkit/)

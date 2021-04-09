@@ -52,7 +52,7 @@
 - name: Set master configuration
   block:
     - name: Initialize the Kubernetes cluster using kubeadm
-      command: "kubeadm init --apiserver-advertise-address={{ apiserver_advertise_address }} --apiserver-cert-extra-sans={{ apiserver_cert_extra_sans }}  --node-name {{ inventory_hostname }} --pod-network-cidr={{ pod_network_cidr }}"
+      command: "kubeadm init --apiserver-advertise-address={{ apiserver_advertise_address }} --apiserver-cert-extra-sans={{ apiserver_cert_extra_sans }} --pod-network-cidr={{ pod_network_cidr }} --node-name={{ inventory_hostname }}"
 
     - name: Setup kubeconfig for user
       command: "{{ item }}"
@@ -61,8 +61,17 @@
         - "cp -i /etc/kubernetes/admin.conf /home/{{ user }}/.kube/config"
         - "chown {{ user }}:{{ group }} /home/{{ user }}/.kube/config"
 
-    - name: Install calico pod network
-      command: "kubectl create -f {{ pod_network_plugin }}"
+    - name: Copy network plugin to master
+      copy:
+        src: "../config/kube-flannel.yml"
+        dest: "/home/{{ user }}"
+
+    # - name: Install network plugin
+    #   command: "kubectl create -f {{ pod_network_plugin }}"
+    #   become: false
+
+    - name: Install network plugin
+      command: "kubectl create -f /home/{{ user }}/kube-flannel.yml"
       become: false
 
     - name: Generate join command
@@ -70,7 +79,7 @@
       register: join_command
 
     - name: Copy join command to local file
-      local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join_command"
+      local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="../config/join_command"
       become: false
   when: inventory_hostname == "{{ k8s_master_name }}" #when: inventory_hostname in groups['k8s-master']
 
@@ -79,10 +88,13 @@
   block:
     - name: Copy the join command to node
       copy: 
-        src: join_command
+        src: "../config/join_command"
         dest: /tmp/join_command.sh
         mode: "0777"
 
     - name: Join the node to cluster
       command: sh /tmp/join_command.sh
+
+    - name: Remove token script
+      command: "rm -f /tmp/join_command.sh"
   when: inventory_hostname != "{{ k8s_master_name }}" #when: inventory_hostname in groups['nodes']
