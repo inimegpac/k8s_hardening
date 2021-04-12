@@ -1,4 +1,0 @@
-user: vagrant
-group: vagrant
-#remote_ansible_dir: /home/ansible
-remote_home_dir: /home/vagrant
