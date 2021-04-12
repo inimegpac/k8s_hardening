@@ -29,7 +29,7 @@ $ sudo bash benchmark/docker-bench-security.sh -v 20.10.5
     - [INFO] in yellow for external (manually) actions (checks) you have to do in order to follow CIS recommendation. In general this check does not have a critical impact in your Docker environment nor may depend on external factors.
     - [NOTE] in blue for just a recommendations/suggestion or information to fix the point.
 
-- [config/daemon.json](config/daemon.json) file configuration provided.
+- [config/docker/daemon.json](config/docker/daemon.json) file configuration provided.
 
 ~~~
 {
@@ -77,7 +77,7 @@ If you want to test manually
 
 - Copy [benchmark_docker](benchmark_docker) path to remote machines.
 
-- Copy the [config/daemon.json](config/daemon.json) to the Docker Daemon config path (by default `/etc/docker/daemon.json`) on remote machines. You can add more options from [config/daemon-template.json](config/daemon-template.json). **NOTE**: care about `"userns-remap"` option (see Troubleshooting part for further information).
+- Copy the [config/docker/daemon.json](config/docker/daemon.json) to the Docker Daemon config path (by default `/etc/docker/daemon.json`) on remote machines. You can add more options from [config/docker/daemon-template.json](config/docker/daemon-template.json). **NOTE**: care about `"userns-remap"` option (see Troubleshooting part for further information).
 
 - If you want to test the [docker/docker-compose.yml](docker/docker-compose.yml) you have to copy it to another path. See [docker/README.md](docker/README.md)
 
@@ -166,7 +166,7 @@ ERROR: for python  Cannot start service python: OCI runtime create failed: conta
 
 *explanation*: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
 
-*remmediation*: delete `"userns-remap": "default"` from `config/daemon.json`
+*remmediation*: delete `"userns-remap": "default"` from `config/docker/daemon.json`
 
 *related to*: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
 
@@ -178,6 +178,8 @@ ERROR: for python  Cannot start service python: OCI runtime create failed: conta
 $ kubectl get nodes -o wide
 $ kubectl get po -n kube-system
 ~~~
+
+- The default CIDR range for **flannel** is `10.244.0.0/16`. If you are using `kubeadm init`, make sure to use `-–pod-network-cidr=10.244.0.0/16`. ***NOTE***: this project implement vagrant tests with `--pod-network-cidr=192.168.3.0/24` and the option `--iface=eth1` in [config/k8s/kube-flannel.yml](config/k8s/kube-flannel.yml). Be sure to change this options if you want to modify the pod network.
 
 - Nodes are in status *Ready* but **flannel** pods are on *Error* or *CrashLoopBackOff*
 

@@ -2,7 +2,7 @@
 # CIS 1.2.[3-12]. Restart auditd at the end
 - name: Copy auditd configuration
   copy:
-    src: ../config/docker.rules
+    src: ../config/docker/docker.rules
     dest: /etc/audit/rules.d/
     owner: root
     group: root
@@ -11,7 +11,7 @@
 # CIS 2.[1-17] and 3.[17-18]
 - name: Copy Docker daemon configuration
   copy:
-    src: ../config/daemon.json
+    src: ../config/docker/daemon.json
     dest: /etc/docker/
     owner: root
     group: root
@@ -136,7 +136,7 @@
 # CIS 4.5
 - name: Copy environment variable to ensure content trust for Docker
   copy:
-    src: ../config/docker-env.conf
+    src: ../config/docker/docker-env.conf
     dest: /etc/environment.d/
     owner: root
     group: root

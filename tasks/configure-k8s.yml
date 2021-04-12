@@ -63,7 +63,7 @@
 
     - name: Copy network plugin to master
       copy:
-        src: "../config/kube-flannel.yml"
+        src: "../config/k8s/kube-flannel.yml"
         dest: "/home/{{ user }}"
 
     # - name: Install network plugin

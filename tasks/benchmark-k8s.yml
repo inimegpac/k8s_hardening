@@ -1,5 +1,5 @@
 ---
-# Finally run benchmark and fetch results
+# Run benchmark and fetch results
 - name: Verify if benchmark folder exists
   stat:
     path: "{{  remote_home_dir }}/benchmark_k8s/"
