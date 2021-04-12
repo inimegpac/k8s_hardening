@@ -1,0 +1,37 @@
+---
+# Run benchmark and fetch results
+- name: Verify if benchmark folder exists
+  stat:
+    path: "{{  remote_home_dir }}/benchmark_k8s/"
+  register: benchmarkdockerpath
+  
+- name: Remove previous benchmark
+  command: "rm -rf {{  remote_home_dir }}/benchmark_k8s/"
+  when: benchmarkdockerpath.stat.exists == True
+
+- name: Copy benchmark scripts
+  copy:
+    src: ../benchmark_k8s/
+    dest: "{{  remote_home_dir }}/benchmark_k8s/"
+
+- name: Verify if go binary is executable
+  file:
+    path: "{{  remote_home_dir }}/benchmark_k8s/kube-bench"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0111"
+
+- name: Run benchmark Kubernetes
+  shell: "{{  remote_home_dir }}/benchmark_k8s/kube-bench --benchmark cis-1.6 | tee {{ inventory_hostname }}-{{  k8s_benchmark_log }}"
+  args:
+    chdir: "{{  remote_home_dir }}/benchmark_k8s/"
+  register: benchmark_k8s
+
+- name: Fetching benchmark results log
+  fetch:
+    src: "{{  remote_home_dir }}/benchmark_k8s/{{ inventory_hostname }}-{{  k8s_benchmark_log }}"
+    dest: ../benchmark_k8s/results/
+    flat: yes
+
+- name: Remove benchmark
+  command: "rm -rf {{  remote_home_dir }}/benchmark_k8s/"

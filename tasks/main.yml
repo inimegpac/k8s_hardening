@@ -1,0 +1,38 @@
+---
+# Docker
+- include_tasks: configure-docker.yml
+  when: docker_install | bool
+
+- include_tasks: configure-docker-compose.yml
+  when: docker_install_compose | bool
+
+- include_tasks: ../tasks/benchmark-docker.yml
+  when: docker_benchmark | bool
+
+- name: (Debian) Install and restart Docker
+  package:
+    name: "{{ docker_package_debian }}"
+    state: "{{ docker_package_state }}"
+  notify: restart docker
+  when: ansible_os_family == 'Debian'
+
+- name: Ensure Docker is started and enabled at boot
+  service:
+    name: docker
+    state: "{{ docker_service_state }}"
+    enabled: "{{ docker_service_enabled }}"
+
+- name: Ensure docker users are added to the docker group
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  with_items: "{{ docker_users }}"
+  when: docker_users | length > 0
+
+# Kubernetes cluster
+- include_tasks: ../tasks/configure-k8s.yml
+  when: k8s_install | bool
+
+- include_tasks: ../tasks/benchmark-k8s.yml
+  when: k8s_benchmark | bool

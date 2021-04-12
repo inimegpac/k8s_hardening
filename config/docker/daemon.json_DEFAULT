@@ -1,0 +1,11 @@
+{
+    "cgroup-parent": "",
+    "log-level": "info",
+    "icc": false,
+    "live-restore": true,
+    "userland-proxy": false,
+    "no-new-privileges": true,
+    "selinux-enabled": true,
+    "userns-remap": "default",
+    "storage-driver": ""
+}
