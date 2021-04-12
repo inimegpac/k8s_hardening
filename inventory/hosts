@@ -1,0 +1,5 @@
+[k8s-master]
+192.168.1.44    ansible_connection=ssh        ansible_user=ansible
+
+#[nodes]
+#192.168.1.[50:51]
