@@ -1,12 +1,12 @@
 ---
-# Install docker? Control the installation with this variable
+# Install Docker
 docker_install: true
 
-# Install Docker Compose?
+# Install Docker Compose
 docker_install_compose: false
 
 # Benchmark Docker
-docker_benchmark: true
+docker_benchmark: false
 docker_benchmark_log: "docker-bench.log"
 
 # A list of users who will be added to the docker group

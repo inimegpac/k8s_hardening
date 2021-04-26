@@ -2,6 +2,8 @@
 
 Most good practices from CIS for hardening your Kubernetes cluster with Ansible.
 
+The Kubernetes cluster is completely functional for testing apps/services (increase VM resources in [Vagrantfile](Vagrantfile)).
+
 Based on:
 
 - [docker-bench-security](https://github.com/docker/docker-bench-security)
@@ -12,7 +14,7 @@ Based on:
 
 - Add script for creating TLS certs automatically.
 
-- Configure calico pod network plugin instead of flannel.
+- Add services for testing.
 
 **New features for docker-bench-security**
 
@@ -55,7 +57,7 @@ $ sudo bash benchmark/docker-bench-security.sh -v 20.10.5
 
 - Install vagrant.
 
-Kubernetes cluster based on vagrant uses [flannel](https://github.com/flannel-io/flannel#flannel) as network plugin. See Troubleshooting to handle with possible errors.
+Kubernetes cluster based on vagrant uses [flannel](https://github.com/flannel-io/flannel#flannel) or [calico](https://docs.projectcalico.org/getting-started/kubernetes/quickstart) as network plugin. See Troubleshooting to handle with possible errors.
 
 ### Ansible
 
@@ -179,7 +181,7 @@ $ kubectl get nodes -o wide
 $ kubectl get po -n kube-system
 ~~~
 
-- The default CIDR range for **flannel** is `10.244.0.0/16`. If you are using `kubeadm init`, make sure to use `-–pod-network-cidr=10.244.0.0/16`. ***NOTE***: this project implement vagrant tests with `--pod-network-cidr=192.168.3.0/24` and the option `--iface=eth1` in [config/k8s/kube-flannel.yml](config/k8s/kube-flannel.yml). Be sure to change this options if you want to modify the pod network.
+- The default CIDR range for **flannel** is `10.244.0.0/16`. If you are using `kubeadm init`, make sure to use `-–pod-network-cidr=10.244.0.0/16`. ***NOTE***: this project implement vagrant tests with `--pod-network-cidr=10.244.0.0/16` and the option `--iface=eth1` in [config/k8s/plugins/flannel/kube-flannel.yml](config/k8s/plugins/flannel/kube-flannel.yml). Be sure to change this options if you want to modify the pod network.
 
 - Nodes are in status *Ready* but **flannel** pods are on *Error* or *CrashLoopBackOff*
 
@@ -191,13 +193,13 @@ Error registering network: failed to acquire lease: node "node1" pod cidr not as
 
 ~~~
 $ sudo cat /etc/kubernetes/manifests/kube-controller-manager.yaml | grep -i cluster-cidr
-    - --cluster-cidr=192.168.3.0/24
+    - --cluster-cidr=10.244.0.0/16
 ~~~
 
 Which results is the subnet taken from [vars/k8s.yml](vars/k8s.yml) and [Vagrantfile](Vagrantfile). Then copy that cidr and paste in the following command
 
 ~~~
-$ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch node $i -p '{"spec":{"podCIDR":"192.168.3.0/24"}}'; done
+$ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch node $i -p '{"spec":{"podCIDR":"10.244.0.0/16"}}'; done
 ~~~
 
 ## References
@@ -221,6 +223,8 @@ $ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch
 [Creating a cluster with kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
 
 [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-networking-model)
+
+[Calico network plugin](https://docs.projectcalico.org/getting-started/kubernetes/quickstart)
 
 [Flannel network plugin](https://github.com/flannel-io/flannel#flannel)
 
