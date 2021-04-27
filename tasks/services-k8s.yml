@@ -1,0 +1,26 @@
+---
+- name: Install services/apps
+  block:
+    # Copy manifests
+    - name: Copy services and apps to master
+      copy:
+        src: "../config/k8s/services"
+        dest: "/home/{{ user }}"
+    # ArgoCD
+    - name: Install ArgoCD
+      command: "{{ item }}"
+      with_items:
+        - "kubectl create namespace argocd"
+        - "kubectl apply -n argocd -f /home/{{ user }}/services/argocd/install.yaml"
+      become: false
+      when: argocd_install | bool
+    # SonarQube
+    - name: Install Sonarqube
+      command: "{{ item }}"
+      with_items:
+        - "kubectl create namespace sonar"
+        - "kubectl apply -f /home/{{ user }}/services/sonarqube/sonarqube_psql.yaml"
+        - "kubectl apply -f /home/{{ user }}/services/sonarqube/sonarqube.yaml"
+      become: false
+      when: sonarqube_install | bool
+  when: inventory_hostname == "{{ k8s_master_name }}" #when: inventory_hostname in groups['k8s-master']

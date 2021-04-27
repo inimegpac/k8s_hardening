@@ -14,6 +14,8 @@ Based on:
 
 - Add script for creating TLS certs automatically.
 
+- Set variables with `envsub`
+
 - Add services for testing.
 
 **New features for docker-bench-security**

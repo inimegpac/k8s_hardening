@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-sonar
+  labels:
+    app: postgres-sonar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-sonar
+  template:
+    metadata:
+      labels:
+        app: postgres-sonar
+    spec:
+      containers:
+        - name: postgres-sonar
+          image: postgres:9.6.17
+          ports:
+          - containerPort: 5432
+          env:
+          - name: "POSTGRES_DB"
+            value: "sonar"
+          - name: "POSTGRES_USER"
+            value: "sonar"
+          - name: "POSTGRES_PASSWORD"
+            value: "rl:i1ViCHvrz2Mv]~Hy"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: postgres-sonar
+  name: postgres-sonar-service
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: postgres-sonar
+  type: ClusterIP

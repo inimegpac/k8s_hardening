@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: sonarqube
+  name: sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      containers:
+        - name: sonarqube
+          image: sonarqube:8.4.1-community
+          resources: {}
+          env:
+          - name: "SONARQUBE_JDBC_USERNAME"
+            value: "sonar"
+          - name: "SONARQUBE_JDBC_URL"
+            value: "jdbc:postgresql://postgres-sonar-service/sonar"
+          - name: "SONARQUBE_JDBC_PASSWORD"
+            value: "rl:i1ViCHvrz2Mv]~Hy"
+          ports:
+          - containerPort: 9000
+            protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: sonarqube
+  name: sonarqube-service
+spec:
+  ports:
+    - name: sonar
+      port: 80
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: sonarqube
+  type: ClusterIP

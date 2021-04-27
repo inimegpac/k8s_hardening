@@ -2,9 +2,12 @@
 
 ## Configuration
 
+Create argo namespace and apply manifest
+
 ~~~
 $ kubectl create namespace argocd
-$ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+$ kubectl apply -n argocd -f install.yaml  # https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+$ kubectl get po -n argocd
 ~~~
 
 **Port Forwarding**
@@ -13,7 +16,13 @@ $ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/
 $ kubectl port-forward svc/argocd-server -n argocd 8080:443
 ~~~
 
-**Login Using The CLI**
+In this case the service will be available on `localhost:8080`. Using vagrant you should forward with the following command
+
+~~~
+$ ssh -v -N vagrant@192.168.0.160 -L 8080:localhost:8080
+~~~
+
+**Login**
 
 [From official documentation](https://github.com/argoproj/argo-cd/blob/master/docs/getting_started.md)
 

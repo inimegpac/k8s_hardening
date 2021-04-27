@@ -36,3 +36,5 @@
 
 - include_tasks: ../tasks/benchmark-k8s.yml
   when: k8s_benchmark | bool
+
+- include_tasks: ../tasks/services-k8s.yml
