@@ -22,5 +22,5 @@ k8s_apt_gpg_key: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
 network_plugin: "calico" # "flannel" # See troubleshooting
 
 # Install services
-argocd_install: true
-sonarqube_install: true
+argocd_install: false
+sonarqube_install: false

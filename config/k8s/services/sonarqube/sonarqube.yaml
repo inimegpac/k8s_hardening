@@ -22,9 +22,9 @@ spec:
           - name: "SONARQUBE_JDBC_USERNAME"
             value: "sonar"
           - name: "SONARQUBE_JDBC_URL"
-            value: "jdbc:postgresql://postgres-sonar-service/sonar"
+            value: "jdbc:postgresql://psql-sonar-svc/sonar"
           - name: "SONARQUBE_JDBC_PASSWORD"
-            value: "rl:i1ViCHvrz2Mv]~Hy"
+            value: "changeme"
           ports:
           - containerPort: 9000
             protocol: TCP
@@ -34,7 +34,7 @@ kind: Service
 metadata:
   labels:
     app: sonarqube
-  name: sonarqube-service
+  name: sonarqube-svc
 spec:
   ports:
     - name: sonar

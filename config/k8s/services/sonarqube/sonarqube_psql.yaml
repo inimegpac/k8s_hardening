@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-sonar
+  name: psql-sonar
   labels:
-    app: postgres-sonar
+    app: psql-sonar
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-sonar
+      app: psql-sonar
   template:
     metadata:
       labels:
-        app: postgres-sonar
+        app: psql-sonar
     spec:
       containers:
-        - name: postgres-sonar
-          image: postgres:9.6.17
+        - name: psql-sonar
+          image: postgres:13
           ports:
           - containerPort: 5432
           env:
@@ -25,14 +25,14 @@ spec:
           - name: "POSTGRES_USER"
             value: "sonar"
           - name: "POSTGRES_PASSWORD"
-            value: "rl:i1ViCHvrz2Mv]~Hy"
+            value: "changeme"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: postgres-sonar
-  name: postgres-sonar-service
+    app: psql-sonar
+  name: psql-sonar-svc
 spec:
   ports:
     - name: postgres
@@ -40,5 +40,5 @@ spec:
       protocol: TCP
       targetPort: 5432
   selector:
-    app: postgres-sonar
+    app: psql-sonar
   type: ClusterIP
