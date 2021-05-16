@@ -63,16 +63,21 @@
 
     - name: Copy network plugin to master
       copy:
-        src: "../config/k8s/kube-flannel.yml"
+        src: "../config/k8s/plugins"
         dest: "/home/{{ user }}"
 
-    # - name: Install network plugin
-    #   command: "kubectl create -f {{ pod_network_plugin }}"
-    #   become: false
-
-    - name: Install network plugin
-      command: "kubectl create -f /home/{{ user }}/kube-flannel.yml"
+    - name: Install Calico network plugin
+      command: "{{ item }}"
+      with_items:
+        - "kubectl create -f /home/{{ user }}/plugins/{{ network_plugin }}/tigera-operator.yaml"
+        - "kubectl create -f /home/{{ user }}/plugins/{{ network_plugin }}/custom-resources.yaml"
       become: false
+      when: network_plugin == "calico"
+
+    - name: Install Flannel network plugin
+      command: "kubectl create -f /home/{{ user }}/plugins/{{ network_plugin }}/kube-flannel.yaml"
+      become: false
+      when: network_plugin == "flannel"
 
     - name: Generate join command
       command: kubeadm token create --print-join-command

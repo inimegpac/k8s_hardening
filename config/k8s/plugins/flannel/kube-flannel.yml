@@ -1,4 +1,5 @@
 ---
+# From https://github.com/flannel-io/flannel#flannel
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
@@ -125,7 +126,7 @@ data:
     }
   net-conf.json: |
     {
-      "Network": "192.168.3.0/24",
+      "Network": "192.168.0.0/24",
       "Backend": {
         "Type": "vxlan"
       }

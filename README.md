@@ -1,4 +1,4 @@
-# Ansible Hardening Docker Kubernetes - CIS Benchmark
+# Ansible Hardening Docker & Kubernetes - CIS Benchmark
 
 Most good practices from CIS for hardening your Kubernetes cluster with Ansible.
 
@@ -8,13 +8,25 @@ Based on:
 
 - [kube-bench](https://github.com/aquasecurity/kube-bench)
 
-**TODO**
+The Kubernetes cluster is completely functional for testing apps/services (increase VM resources in [Vagrantfile](Vagrantfile) for custom needs). There are some manifests on [config/k8s/services](config/k8s/services) that you can use to provision your cluster. You can control this installation with corresponding variables in [vars/k8s.yml](vars/k8s.yml)
+
+> Possible services you can install
+
+- ArgoCD
+
+- Sonarqube
+
+> **TODO**
 
 - Add script for creating TLS certs automatically.
 
-- Configure calico pod network plugin instead of flannel.
+- Set variables with `envsub`
 
-**New features for docker-bench-security**
+- Add distribuited PVs.
+
+- Add services for testing.
+
+> **New features for docker-bench-security**
 
 - Ansible configuration.
 
@@ -47,17 +59,19 @@ $ sudo bash benchmark/docker-bench-security.sh -v 20.10.5
 
 - [docker/docker-compose.yml](docker/docker-compose.yml) file provided with examples and security options.
 
-## Configuration
+## Configuration / Requirements
 
-### Test
+> Test
 
 [Vagrantfile](Vagrantfile) provided for testing Ansible playbooks.
 
 - Install vagrant.
 
-Kubernetes cluster based on vagrant uses [flannel](https://github.com/flannel-io/flannel#flannel) as network plugin. See Troubleshooting to handle with possible errors.
+- Set required variables on [vars/](vars/) files.
 
-### Ansible
+Kubernetes cluster based on vagrant uses [flannel](https://github.com/flannel-io/flannel#flannel) or [calico](https://docs.projectcalico.org/getting-started/kubernetes/quickstart) as network plugin. See Troubleshooting to handle with possible errors.
+
+> Ansible
 
 You can deploy the configuration for hardening your machines
 
@@ -71,7 +85,7 @@ You can deploy the configuration for hardening your machines
 
 Run `$ ansible all -m ping` for testing your configuration.
 
-### Manual benchmark
+> Manual benchmark
 
 If you want to test manually
 
@@ -83,7 +97,7 @@ If you want to test manually
 
 ## Usage
 
-### Test
+> Test
 
 - Install vagrant and run `$ vagrant up`. Now you have a Kubernetes cluster running in virtualbox.
 
@@ -95,7 +109,7 @@ $ journalctl -u kubelet
 $ kubectl get po -n kube-system
 ~~~
 
-### Ansible
+> Ansible
 
 Just run the following script [run_playbook.sh](run_playbook.sh) for configuring and hardening Docker in your hosts
 
@@ -105,7 +119,7 @@ $ bash run_playbook.sh playbooks/docker-k8s.yaml
 
 Check benchmark logs on [benchmark_docker/results](benchmark_docker/results) and [benchmark_k8s/results](benchmark_k8s/results)
 
-### Manual benchmark
+> Manual benchmark
 
 **Please go to [docker-bench-security](https://github.com/docker/docker-bench-security)  and [kube-bench](https://github.com/aquasecurity/kube-bench) for further information**
 
@@ -145,7 +159,7 @@ $ kubectl logs $pod_name
 
 ## Troubleshooting
 
-**Docker**
+> **Docker**
 
 - You should make persistant every new rule you add with `auditctl` (see CIS 1). Check it after restart your environment. Ansible makes these default rules persistent but there may be an error if the paths/files do not exist.
 
@@ -162,24 +176,30 @@ $ systemctl stop docker.socket
 ERROR: for python  Cannot start service python: OCI runtime create failed: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: write sysctl key kernel.domainname: open /proc/sys/kernel/domainname: permission denied: unknown
 ~~~
 
-*bug*: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
+> *bug*: [domainname denied if userns enabled](https://github.com/docker/for-linux/issues/743)
 
-*explanation*: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
+> *explanation*: [you can not set the domainname](https://github.com/opencontainers/runtime-spec/issues/592) just the hostname.
 
-*remmediation*: delete `"userns-remap": "default"` from `config/docker/daemon.json`
+> *remmediation*: delete `"userns-remap": "default"` from [config/docker/daemon](config/docker/daemon.json)`
 
-*related to*: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
+> *related to*: CIS 2.8, even `/etc/subuid` `/etc/subgid` are created.
 
-**Kubernetes**
+> **Kubernetes**
 
-- Basic troubleshooting
+
+1. Basic troubleshooting
+
 
 ~~~
 $ kubectl get nodes -o wide
 $ kubectl get po -n kube-system
 ~~~
 
-- The default CIDR range for **flannel** is `10.244.0.0/16`. If you are using `kubeadm init`, make sure to use `-–pod-network-cidr=10.244.0.0/16`. ***NOTE***: this project implement vagrant tests with `--pod-network-cidr=192.168.3.0/24` and the option `--iface=eth1` in [config/k8s/kube-flannel.yml](config/k8s/kube-flannel.yml). Be sure to change this options if you want to modify the pod network.
+
+2. Network Plugin
+
+
+- The default CIDR range for **flannel** is `10.244.0.0/16`. If you are using `kubeadm init`, make sure to use `-–pod-network-cidr=10.244.0.0/16`. ***NOTE***: this project implement vagrant tests with `--pod-network-cidr=10.244.0.0/16` and the option `--iface=eth1` in [config/k8s/plugins/flannel/kube-flannel.yml](config/k8s/plugins/flannel/kube-flannel.yml). Be sure to change this options if you want to modify the pod network.
 
 - Nodes are in status *Ready* but **flannel** pods are on *Error* or *CrashLoopBackOff*
 
@@ -187,18 +207,30 @@ $ kubectl get po -n kube-system
 Error registering network: failed to acquire lease: node "node1" pod cidr not assigned
 ~~~
 
-*remmediation*: unless the cluster is initiallized with the `--pod-network-cidr` argument, sometimes it fails ([issue](https://github.com/kubernetes/kubeadm/issues/1899#issuecomment-552134904)). So you have to run
+> *remmediation*: unless the cluster is initiallized with the `--pod-network-cidr` argument, sometimes it fails ([issue](https://github.com/kubernetes/kubeadm/issues/1899#issuecomment-552134904)). So you have to run
 
 ~~~
 $ sudo cat /etc/kubernetes/manifests/kube-controller-manager.yaml | grep -i cluster-cidr
-    - --cluster-cidr=192.168.3.0/24
+    - --cluster-cidr=10.244.0.0/16
 ~~~
 
 Which results is the subnet taken from [vars/k8s.yml](vars/k8s.yml) and [Vagrantfile](Vagrantfile). Then copy that cidr and paste in the following command
 
 ~~~
-$ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch node $i -p '{"spec":{"podCIDR":"192.168.3.0/24"}}'; done
+$ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch node $i -p '{"spec":{"podCIDR":"10.244.0.0/16"}}'; done
 ~~~
+
+
+3. Services
+
+
+- Sonarqube Error:
+
+~~~
+max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
+~~~
+
+> *remmediation*: run `sysctl -w vm.max_map_count=26214` on the nodes.
 
 ## References
 
@@ -221,6 +253,8 @@ $ for i in $(kubectl get nodes | grep node | awk '{print $1}'); do kubectl patch
 [Creating a cluster with kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
 
 [Cluster Networking](https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-networking-model)
+
+[Calico network plugin](https://docs.projectcalico.org/getting-started/kubernetes/quickstart)
 
 [Flannel network plugin](https://github.com/flannel-io/flannel#flannel)
 

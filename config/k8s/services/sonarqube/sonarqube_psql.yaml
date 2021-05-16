@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psql-sonar
+  labels:
+    app: psql-sonar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: psql-sonar
+  template:
+    metadata:
+      labels:
+        app: psql-sonar
+    spec:
+      containers:
+        - name: psql-sonar
+          image: postgres:13
+          ports:
+          - containerPort: 5432
+          env:
+          - name: "POSTGRES_DB"
+            value: "sonar"
+          - name: "POSTGRES_USER"
+            value: "sonar"
+          - name: "POSTGRES_PASSWORD"
+            value: "changeme"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: psql-sonar
+  name: psql-sonar-svc
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: psql-sonar
+  type: ClusterIP
