@@ -9,18 +9,19 @@ k8s_benchmark_log: "bench.log"
 k8s_master_name: "k8s-master"
 
 # Extra master variables. Check in Vagrantfile
-apiserver_advertise_address: "192.168.0.160"
-apiserver_cert_extra_sans: "192.168.0.160"
+apiserver_advertise_address: "192.168.1.180"
+apiserver_cert_extra_sans: "192.168.1.180"
 pod_network_cidr: "10.244.0.0/16"
 
 # Used only for Debian/Ubuntu
 k8s_apt_repository: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
 k8s_package_state: "present"
-k8s_apt_gpg_key: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+k8s_apt_gpg_key: "https://packages.cloud.google.com/apt/doc/apt-key.gpg.asc"
 
 # Network plugin
 network_plugin: "calico" # "flannel" # See troubleshooting
 
 # Install services
-argocd_install: false
+argocd_install: true
+nginx_install: true
 sonarqube_install: false

@@ -14,6 +14,13 @@
         - "kubectl apply -n argocd -f /home/{{ user }}/services/argocd/install.yaml"
       become: false
       when: argocd_install | bool
+    # Ingress nginx
+    - name: Install Nginx
+      command: "{{ item }}"
+      with_items:
+        - "kubectl apply -f /home/{{ user }}/services/nginx/deploy.yaml"
+      become: false
+      when: nginx_install | bool
     # SonarQube
     - name: Install Sonarqube
       command: "{{ item }}"
