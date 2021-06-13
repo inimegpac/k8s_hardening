@@ -19,6 +19,7 @@ $ kubectl port-forward svc/argocd-server -n argocd 8080:443
 In this case the service will be available on `localhost:8080`. Using vagrant you should forward with the following command
 
 ~~~
+# Password vagrant
 $ ssh -v -N vagrant@192.168.1.180 -L 8080:localhost:8080
 ~~~
 
