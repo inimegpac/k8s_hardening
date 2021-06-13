@@ -14,7 +14,7 @@ Vagrant.configure("2") do |config|
         master.vm.network "public_network", ip: "192.168.1.180"
         master.vm.hostname = "k8s-master"
         master.vm.provider "virtualbox" do |v|
-            v.memory = 2048
+            v.memory = 2048 # ERROR: the system RAM (1024 MB) is less than the minimum 1700 MB
             v.cpus = 2
         end
         master.vm.provision "ansible" do |ansible|
