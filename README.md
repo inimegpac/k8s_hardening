@@ -12,19 +12,23 @@ The Kubernetes cluster is completely functional for testing apps/services (incre
 
 > Possible services you can install
 
-- ArgoCD
+- **Cert-Manager** for certificates
 
-- Sonarqube
+- **Nginx**
+
+- **ArgoCD**
+
+- **Sonarqube**
 
 > **TODO**
 
-- Add script for creating TLS certs automatically.
+- Add script for creating TLS Docker certs automatically.
 
 - Set variables with `envsub`
 
 - Add distribuited PVs.
 
-- Add services for testing.
+- Add more services for testing.
 
 > **New features for docker-bench-security**
 
